@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faMapMarkerAlt, faRupeeSign, faGraduationCap, faBuilding, faStar, faVrCardboard, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { useUser } from '../context/UserContext';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const InstituteDetail = () => {
   const { id } = useParams();
@@ -15,11 +18,16 @@ const InstituteDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedInstitute, setEditedInstitute] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useUser();
+  const [wishlistStatus, setWishlistStatus] = useState({});
 
   useEffect(() => {
     fetchInstituteData();
     checkUserRole();
-  }, [id]);
+    if (user) {
+      fetchWishlistStatus();
+    }
+  }, [id, user]);
 
   const checkUserRole = () => {
     const userRole = localStorage.getItem('userRole');
@@ -36,6 +44,76 @@ const InstituteDetail = () => {
       console.error('Error fetching institute:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWishlistStatus = async () => {
+    if (!user) return;
+
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/wishlist/check`, {
+        params: {
+          userId: user.id,
+          instituteId: id
+        }
+      });
+
+      if (response.data.success) {
+        const status = {};
+        institute?.departments.forEach((department, deptIndex) => {
+          department.programs.forEach((_, progIndex) => {
+            const key = `${deptIndex}-${progIndex}`;
+            status[key] = response.data.data.isInWishlist;
+          });
+        });
+        setWishlistStatus(status);
+      }
+    } catch (error) {
+      console.error('Error fetching wishlist status:', error);
+      toast.error('Failed to load wishlist status');
+    }
+  };
+
+  const toggleHeart = async (departmentIndex, programIndex) => {
+    if (!user) {
+      toast.info('Please login to add programs to your wishlist');
+      navigate('/login');
+      return;
+    }
+
+    const key = `${departmentIndex}-${programIndex}`;
+    const isInWishlist = wishlistStatus[key];
+    const program = institute.departments[departmentIndex].programs[programIndex];
+
+    try {
+      if (isInWishlist) {
+        // Remove from wishlist
+        await axios.delete('http://localhost:3000/api/v1/wishlist/remove', {
+          data: {
+            userId: user.id,
+            instituteId: id,
+            programId: key
+          }
+        });
+        toast.success(`${program.name} removed from wishlist`);
+      } else {
+        // Add to wishlist
+        await axios.post('http://localhost:3000/api/v1/wishlist/add', {
+          userId: user.id,
+          instituteId: id,
+          programId: key
+        });
+        toast.success(`${program.name} added to wishlist`);
+      }
+
+      // Update local state
+      setWishlistStatus(prev => ({
+        ...prev,
+        [key]: !isInWishlist
+      }));
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      toast.error(error.response?.data?.message || 'Failed to update wishlist');
     }
   };
 
@@ -202,6 +280,18 @@ const InstituteDetail = () => {
 
   return (
     <div>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <div className="bg-[#538be6] py-14"></div>
 
       <div className="max-w-7xl mx-auto py-2">
@@ -355,7 +445,7 @@ const InstituteDetail = () => {
                         {department.programs.map((program, programIndex) => {
                           const key = `${departmentIndex}-${programIndex}`;
                           return (
-                            <div key={programIndex} className="bg-gray-100 p-4 rounded-lg">
+                            <div key={programIndex} className="bg-gray-100 p-4 rounded-lg hover:shadow-md transition-shadow duration-300">
                               {isEditing ? (
                                 <div className="space-y-2">
                                   <input
@@ -419,19 +509,27 @@ const InstituteDetail = () => {
                                     <FontAwesomeIcon icon={faGraduationCap} className="mr-1" />
                                     {program.duration}
                                   </p>
-                                  <button
-                                    className="bg-[#1d5ec7] text-white px-3 py-1 rounded-full text-sm hover:bg-[#306fd6] transition duration-300"
-                                    onClick={() => navigate('/apply')}
-                                  >
-                                    Apply Now
-                                  </button>
-                                  <FontAwesomeIcon
-                                    icon={faHeart}
-                                    className={`text-xl cursor-pointer mt-2 float-right ${
-                                      heartStates[key] ? 'text-red-500' : 'text-black'
-                                    }`}
-                                    onClick={() => toggleHeart(departmentIndex, programIndex)}
-                                  />
+                                  <div className="flex justify-between items-center">
+                                    <button
+                                      className="bg-[#1d5ec7] text-white px-3 py-1 rounded-full text-sm hover:bg-[#306fd6] transition duration-300"
+                                      onClick={() => navigate('/apply')}
+                                    >
+                                      Apply Now
+                                    </button>
+                                    <button
+                                      onClick={() => toggleHeart(departmentIndex, programIndex)}
+                                      className="focus:outline-none"
+                                    >
+                                      <FontAwesomeIcon
+                                        icon={faHeart}
+                                        className={`text-xl cursor-pointer transform transition-all duration-300 ${
+                                          wishlistStatus[key] 
+                                            ? 'text-red-500 scale-110' 
+                                            : 'text-gray-400 hover:text-red-500'
+                                        }`}
+                                      />
+                                    </button>
+                                  </div>
                                 </>
                               )}
                             </div>

@@ -7,6 +7,7 @@ import SubscriptionRouter from './routes/subscription.routes.js'
 import StudentRouter from './routes/student.route.js'
 import connectDB from './config/DB.js'
 import cors from 'cors'
+import wishlistRoutes from './routes/wishlist.routes.js'
 
 dotenv.config()
 
@@ -19,6 +20,7 @@ app.use('/api/v1/auth', AuthRouter)
 app.use('/api/v1/users', UserRouter)
 app.use('/api/v1/subscriptions', SubscriptionRouter)
 app.use('/api/v1/students', StudentRouter)
+app.use('/api/v1/wishlist', wishlistRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

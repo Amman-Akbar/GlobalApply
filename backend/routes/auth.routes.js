@@ -6,7 +6,7 @@ const router = express.Router();
 // Auth routes
 router.post('/signup', signup);
 router.post('/login', login);
-router.get('/token', token);
+router.get('/me', token);
 router.post('/register-institute', registerInstitute);
 
 export default router; 

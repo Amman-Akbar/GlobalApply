@@ -18,11 +18,43 @@ const Login = () => {
     }
   }, [user]);
 
-  const redirectBasedOnRole = (role) => {
+  const redirectBasedOnRole = async (role) => {
     if (role === 'student') {
       navigate('/student-dashboard');
     } else if (role === 'institute') {
-      navigate('/institute-dashboard');
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+        
+        // Get user data to get the user ID
+        const userResponse = await axios.get("http://localhost:3000/api/v1/auth/me", { headers });
+        const userId = userResponse.data.user.id;
+
+        // Get institute data
+        const instituteResponse = await axios.get(
+          `http://localhost:3000/api/v1/institute/user/${userId}`,
+          { headers }
+        );
+
+        const institute = instituteResponse.data.data;
+        
+        if (institute.status === 'approved') {
+          navigate('/institute-dashboard');
+        } else if (institute.status === 'pending') {
+          setError('Your institute account is pending approval. Please wait for admin approval.');
+          localStorage.removeItem('token');
+          setUser(null);
+        } else if (institute.status === 'rejected') {
+          setError('Your institute account has been rejected. Please contact the administrator.');
+          localStorage.removeItem('token');
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Error checking institute status:', err);
+        setError('Error checking institute status. Please try again.');
+        localStorage.removeItem('token');
+        setUser(null);
+      }
     } else if (role === 'admin') {
       navigate('/admin');
     } else {
@@ -56,7 +88,7 @@ const Login = () => {
       setUser(userData);
 
       // Redirect based on the user's role
-      redirectBasedOnRole(userData.role);
+      await redirectBasedOnRole(userData.role);
     } catch (error) {
       setError(error.response?.data?.message || 'Login failed. Please try again.');
     } finally {

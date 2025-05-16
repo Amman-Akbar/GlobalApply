@@ -13,18 +13,7 @@ const RegisterInstitute = () => {
     registrationNumber: '',
     feeRange: '',
     description: '',
-    facilities: [''],
-    departments: [{
-      name: '',
-      programs: [{
-        name: '',
-        semesterFee: '',
-        duration: '',
-        levelofProgram: '',
-        deadline: '',
-        isActive: false
-      }]
-    }]
+    logo: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,112 +28,13 @@ const RegisterInstitute = () => {
     });
   };
 
-  const handleFacilityChange = (index, value) => {
-    const newFacilities = [...formData.facilities];
-    newFacilities[index] = value;
-    setFormData({
-      ...formData,
-      facilities: newFacilities
-    });
-  };
-
-  const addFacility = () => {
-    setFormData({
-      ...formData,
-      facilities: [...formData.facilities, '']
-    });
-  };
-
-  const removeFacility = (index) => {
-    const newFacilities = formData.facilities.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      facilities: newFacilities
-    });
-  };
-
-  const handleDepartmentChange = (index, field, value) => {
-    const newDepartments = [...formData.departments];
-    newDepartments[index] = {
-      ...newDepartments[index],
-      [field]: value
-    };
-    setFormData({
-      ...formData,
-      departments: newDepartments
-    });
-  };
-
-  const addDepartment = () => {
-    setFormData({
-      ...formData,
-      departments: [...formData.departments, {
-        name: '',
-        programs: [{
-          name: '',
-          semesterFee: '',
-          duration: '',
-          levelofProgram: '',
-          deadline: '',
-          isActive: false
-        }]
-      }]
-    });
-  };
-
-  const removeDepartment = (index) => {
-    const newDepartments = formData.departments.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      departments: newDepartments
-    });
-  };
-
-  const handleProgramChange = (departmentIndex, programIndex, field, value) => {
-    const newDepartments = [...formData.departments];
-    newDepartments[departmentIndex].programs[programIndex] = {
-      ...newDepartments[departmentIndex].programs[programIndex],
-      [field]: value
-    };
-    setFormData({
-      ...formData,
-      departments: newDepartments
-    });
-  };
-
-  const addProgram = (departmentIndex) => {
-    const newDepartments = [...formData.departments];
-    newDepartments[departmentIndex].programs.push({
-      name: '',
-      semesterFee: '',
-      duration: '',
-      levelofProgram: '',
-      deadline: '',
-      isActive: false
-    });
-    setFormData({
-      ...formData,
-      departments: newDepartments
-    });
-  };
-
-  const removeProgram = (departmentIndex, programIndex) => {
-    const newDepartments = [...formData.departments];
-    newDepartments[departmentIndex].programs = newDepartments[departmentIndex].programs.filter((_, i) => i !== programIndex);
-    setFormData({
-      ...formData,
-      departments: newDepartments
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
-      // First, register the user account
-      const userResponse = await axios.post("http://localhost:3000/api/v1/auth/register-institute", {
+      const response = await axios.post("http://localhost:3000/api/v1/auth/register-institute", {
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -153,39 +43,19 @@ const RegisterInstitute = () => {
         website: formData.website,
         registrationNumber: formData.registrationNumber,
         description: formData.description,
-        logo: formData.logo
+        logo: formData.logo,
+        feeRange: formData.feeRange
       });
 
-      if (userResponse.data.token) {
+      if (response.data.token) {
         // Store the token
-        localStorage.setItem('token', userResponse.data.token);
-        
-        // Create the institute with the user ID
-        const instituteData = {
-          ...formData,
-          userId: userResponse.data.user.id
-        };
-
-        const instituteResponse = await axios.post(
-          "http://localhost:3000/api/v1/institute",
-          instituteData,
-          {
-            headers: {
-              'Authorization': `Bearer ${userResponse.data.token}`
-            }
-          }
-        );
-
-        if (instituteResponse.data.success) {
-          // Store the institute ID in localStorage
-          localStorage.setItem('instituteId', instituteResponse.data.data._id);
-          alert("Institute registered successfully!");
-          navigate("/institute-dashboard");
-        } else {
-          setError("Institute registration failed. Please try again.");
-        }
+        localStorage.setItem('token', response.data.token);
+        // Store the institute ID
+        localStorage.setItem('instituteId', response.data.institute.id);
+        alert("Institute registered successfully! Please wait for admin approval. You will be notified via email once approved.");
+        navigate("/"); // Redirect to index page
       } else {
-        setError("User registration failed. Please try again.");
+        setError("Registration failed. Please try again.");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");
@@ -347,140 +217,6 @@ const RegisterInstitute = () => {
             rows="4"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           ></textarea>
-        </div>
-
-        {/* Facilities */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Facilities
-          </label>
-          {formData.facilities.map((facility, index) => (
-            <div key={index} className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={facility}
-                onChange={(e) => handleFacilityChange(index, e.target.value)}
-                placeholder="Enter facility"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => removeFacility(index)}
-                className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addFacility}
-            className="mt-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-          >
-            Add Facility
-          </button>
-        </div>
-
-        {/* Departments and Programs */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Departments and Programs
-          </label>
-          {formData.departments.map((department, departmentIndex) => (
-            <div key={departmentIndex} className="mb-6 p-4 border rounded-lg">
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  value={department.name}
-                  onChange={(e) => handleDepartmentChange(departmentIndex, 'name', e.target.value)}
-                  placeholder="Department Name"
-                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeDepartment(departmentIndex)}
-                  className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
-                >
-                  Remove Department
-                </button>
-              </div>
-
-              {/* Programs */}
-              <div className="ml-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Programs</h4>
-                {department.programs.map((program, programIndex) => (
-                  <div key={programIndex} className="mb-4 p-3 border rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        value={program.name}
-                        onChange={(e) => handleProgramChange(departmentIndex, programIndex, 'name', e.target.value)}
-                        placeholder="Program Name"
-                        className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={program.semesterFee}
-                        onChange={(e) => handleProgramChange(departmentIndex, programIndex, 'semesterFee', e.target.value)}
-                        placeholder="Semester Fee"
-                        className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={program.duration}
-                        onChange={(e) => handleProgramChange(departmentIndex, programIndex, 'duration', e.target.value)}
-                        placeholder="Duration"
-                        className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={program.levelofProgram}
-                        onChange={(e) => handleProgramChange(departmentIndex, programIndex, 'levelofProgram', e.target.value)}
-                        placeholder="Level of Program"
-                        className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                      <input
-                        type="date"
-                        value={program.deadline}
-                        onChange={(e) => handleProgramChange(departmentIndex, programIndex, 'deadline', e.target.value)}
-                        className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={program.isActive}
-                          onChange={(e) => handleProgramChange(departmentIndex, programIndex, 'isActive', e.target.checked)}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <label className="ml-2 text-sm text-gray-700">Active Program</label>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeProgram(departmentIndex, programIndex)}
-                      className="mt-2 px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
-                    >
-                      Remove Program
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => addProgram(departmentIndex)}
-                  className="mt-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-                >
-                  Add Program
-                </button>
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addDepartment}
-            className="mt-4 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-          >
-            Add Department
-          </button>
         </div>
 
         <button

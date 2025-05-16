@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const SubscriptionManagement = () => {
+const SubscriptionManagement = ({ instituteId }) => {
   const [availableSubscriptions, setAvailableSubscriptions] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ const SubscriptionManagement = () => {
         setAvailableSubscriptions(subscriptionsResponse.data);
 
         // Fetch current user's subscription
-        const userResponse = await axios.get('http://localhost:3000/api/v1/users/me', {
+        const userResponse = await axios.get('http://localhost:3000/api/v1/auth/me', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
@@ -53,7 +53,7 @@ const SubscriptionManagement = () => {
         'http://localhost:3000/api/v1/subscriptions/assign',
         {
           subscriptionId,
-          instituteId: localStorage.getItem('userId') // Assuming userId is stored in localStorage
+          instituteId
         },
         {
           headers: {
@@ -102,59 +102,59 @@ const SubscriptionManagement = () => {
         </div>
       )}
 
-      {/* Display current subscription details */}
-      <div className="mt-4">
-        {currentSubscription ? (
-          <>
-            <p className="text-sm text-gray-500">
-              Current Plan: <span className="font-semibold">{currentSubscription.planName}</span>
-            </p>
-            <p className="text-sm text-gray-500">
-              Price: <span className="font-semibold">{currentSubscription.price}</span>
-            </p>
-
-            {/* Features List */}
-            <div className="mt-4">
-              <h4 className="font-semibold text-gray-600">Your Plan Features:</h4>
-              <ul className="list-disc pl-6 mt-2">
-                {currentSubscription.features.map((feature, index) => (
-                  <li key={index} className="text-sm text-gray-600">{feature}</li>
-                ))}
-              </ul>
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-gray-500">No active subscription</p>
-        )}
-
-        {/* Subscription Management Options */}
+      {currentSubscription ? (
         <div className="mt-6">
+          <h4 className="text-lg font-medium text-gray-700">Current Subscription</h4>
+          <div className="mt-4 p-4 border rounded-lg">
+            <p className="font-semibold">{currentSubscription.planName}</p>
+            <p className="text-gray-600">{currentSubscription.price}</p>
+            <ul className="mt-2">
+              {currentSubscription.features.map((feature, index) => (
+                <li key={index} className="flex items-center text-gray-600">
+                  <svg
+                    className="w-4 h-4 mr-2 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-6">
+          <p className="text-gray-600">No active subscription</p>
           <button
-            className="bg-[#1D5EC7] text-white py-2 px-4 rounded-lg hover:bg-[#306fd6] transition duration-300"
             onClick={toggleManageSubscription}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
-            {isManaging ? "Cancel" : "Manage Subscription"}
+            View Available Plans
           </button>
         </div>
-      </div>
+      )}
 
-      {/* Available Subscriptions (visible when isManaging is true) */}
       {isManaging && (
-        <div className="mt-6">
-          <h4 className="font-semibold text-gray-700 mb-4">Available Subscription Plans:</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="mt-8">
+          <h4 className="text-lg font-medium text-gray-700">Available Plans</h4>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {availableSubscriptions
               .filter(sub => sub.status === 'Active')
               .map((subscription) => (
-                <div
-                  key={subscription._id}
-                  className="border rounded-lg p-4 hover:shadow-lg transition duration-300"
-                >
-                  <h5 className="font-semibold text-lg">{subscription.planName}</h5>
-                  <p className="text-xl font-bold text-[#1D5EC7] mt-2">{subscription.price}</p>
-                  <ul className="mt-4 space-y-2">
+                <div key={subscription._id} className="border rounded-lg p-4">
+                  <h5 className="font-semibold">{subscription.planName}</h5>
+                  <p className="text-gray-600">{subscription.price}</p>
+                  <ul className="mt-2">
                     {subscription.features.map((feature, index) => (
-                      <li key={index} className="text-sm text-gray-600 flex items-center">
+                      <li key={index} className="flex items-center text-gray-600">
                         <svg
                           className="w-4 h-4 mr-2 text-green-500"
                           fill="none"
@@ -174,16 +174,10 @@ const SubscriptionManagement = () => {
                   </ul>
                   <button
                     onClick={() => handlePurchaseSubscription(subscription._id)}
-                    disabled={loading || currentSubscription?._id === subscription._id}
-                    className={`mt-4 w-full py-2 px-4 rounded-lg text-white transition duration-300 ${
-                      currentSubscription?._id === subscription._id
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-[#1D5EC7] hover:bg-[#306fd6]'
-                    }`}
+                    disabled={loading}
+                    className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {currentSubscription?._id === subscription._id
-                      ? 'Current Plan'
-                      : 'Purchase Plan'}
+                    {loading ? 'Processing...' : 'Select Plan'}
                   </button>
                 </div>
               ))}

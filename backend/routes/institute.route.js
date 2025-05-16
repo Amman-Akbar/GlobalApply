@@ -8,7 +8,10 @@ import {
   getFeaturedInstitutes,
   getTrendingInstitutes,
   getLatestListings,
-  getActiveInstitutes
+  getActiveInstitutes,
+  approveInstitute,
+  rejectInstitute,
+  getInstituteByUserId
 } from '../controllers/institute.controller.js';
 
 const router = express.Router();
@@ -22,8 +25,13 @@ router.get('/active', getActiveInstitutes);
 // General routes
 router.get('/', getAllInstitutes);
 router.get('/:id', getInstituteById);
+router.get('/user/:userId', getInstituteByUserId);
 router.post('/', addInstitute);
 router.put('/:id', updateInstitute);
 router.delete('/:id', deleteInstitute);
+
+// Approval routes
+router.put('/:id/approve', approveInstitute);
+router.put('/:id/reject', rejectInstitute);
 
 export default router;

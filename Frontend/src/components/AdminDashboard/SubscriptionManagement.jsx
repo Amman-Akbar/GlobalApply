@@ -527,12 +527,12 @@ const SubscriptionManagement = () => {
 
       {/* Assign/Change Subscription Modal */}
       {selectedInstitute && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 sm:w-96">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-row items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-6xl relative">
             <h3 className="text-lg font-semibold mb-4">
               {selectedInstitute.subscription ? 'Change Subscription Plan' : 'Assign Subscription Plan'}
             </h3>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {subscriptions
                 .filter(sub => sub.status === 'Active')
                 .map((subscription) => (

@@ -6,7 +6,9 @@ import {
   deleteSubscription,
   toggleSubscriptionStatus,
   assignSubscription,
-  removeSubscription
+  removeSubscription,
+  approveSubscription,
+  rejectSubscription
 } from '../controllers/subscription.controller.js';
 
 const router = express.Router();
@@ -19,5 +21,7 @@ router.delete('/:id', deleteSubscription);
 router.patch('/:id/toggle-status', toggleSubscriptionStatus);
 router.post('/assign', assignSubscription);
 router.post('/remove', removeSubscription);
+router.post('/approve', approveSubscription);
+router.post('/reject', rejectSubscription);
 
 export default router; 

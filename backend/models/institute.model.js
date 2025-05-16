@@ -28,6 +28,11 @@ const instituteSchema = new mongoose.Schema({
     ref: 'Subscription',
     default: null 
   },
+  subscriptionStatus: {
+    type: String,
+    enum: ['pending', 'active', 'rejected'],
+    default: null
+  },
   description: { type: String },
   image: { type: String },
   rating: { type: Number, default: 0 },

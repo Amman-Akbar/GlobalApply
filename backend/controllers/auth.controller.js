@@ -3,6 +3,15 @@ import Institute from "../models/institute.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+// Helper function to generate token
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' } // Extended to 24 hours
+  );
+};
+
 export const signup = async (req, res) => {
     const { username, email, password, image } = req.body;
   
@@ -27,9 +36,7 @@ export const signup = async (req, res) => {
       await newUser.save();
   
       // Generate JWT token
-      const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-        expiresIn: '1h',
-      });
+      const token = generateToken(newUser);
   
       res.status(201).json({ token, user: newUser });
     } catch (error) {
@@ -37,7 +44,7 @@ export const signup = async (req, res) => {
     }
 };
 
-export const token =async (req, res) => {
+export const token = async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1]; // Extract token from header
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });
@@ -53,8 +60,12 @@ export const token =async (req, res) => {
         return res.status(404).json({ message: 'User not found' });
       }
   
-      // Return user data and role
+      // Generate a new token
+      const newToken = generateToken(user);
+  
+      // Return user data and new token
       res.status(200).json({
+        token: newToken,
         user: {
           id: user._id,
           username: user.username,
@@ -66,7 +77,7 @@ export const token =async (req, res) => {
     } catch (error) {
       res.status(401).json({ message: 'Invalid token' });
     }
-}
+};
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -85,9 +96,7 @@ export const login = async (req, res) => {
     }
 
     // Generate a JWT token
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    const token = generateToken(user);
 
     // Return the token and user data
     res.status(200).json({
@@ -151,9 +160,7 @@ export const registerInstitute = async (req, res) => {
     await newInstitute.save();
 
     // Step 5: Generate a JWT token for the new user
-    const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-      expiresIn: '1h', // Token expires in 1 hour
-    });
+    const token = generateToken(newUser);
 
     // Step 6: Return the token and user data
     res.status(201).json({

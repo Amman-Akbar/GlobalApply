@@ -12,7 +12,7 @@ export const getAllInstitutes = async (req, res) => {
       query.status = status;
     }
 
-    const institutes = await Institute.find(query);
+    const institutes = await Institute.find(query).populate('subscription');
     res.status(200).json({ success: true, data: institutes });
   } catch (error) {
     console.error("Error getting institutes:", error);

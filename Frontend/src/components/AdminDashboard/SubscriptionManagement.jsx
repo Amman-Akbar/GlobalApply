@@ -17,6 +17,14 @@ const SubscriptionManagement = () => {
   });
   const [viewMode, setViewMode] = useState('plans'); // 'plans' or 'institutes'
   const [selectedInstitute, setSelectedInstitute] = useState(null);
+  const [currentPage, setCurrentPage] = useState({
+    pending: 1,
+    active: 1,
+    unsubscribed: 1
+  });
+  const cardsPerPage = 4;
+  const [selectedInstituteDetails, setSelectedInstituteDetails] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     fetchSubscriptions();
@@ -42,6 +50,7 @@ const SubscriptionManagement = () => {
       setLoading(true);
       setError(null);
       const response = await axios.get('http://localhost:3000/api/v1/institute');
+      console.log('Institutes data:', response.data.data); // Debug log
       setInstitutes(response.data.data);
     } catch (err) {
       setError('Failed to fetch institutes. Please try again later.');
@@ -127,6 +136,52 @@ const SubscriptionManagement = () => {
     }
   };
 
+  const handleApproveSubscription = async (instituteId, subscriptionId) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!subscriptionId) {
+        throw new Error('Invalid subscription ID');
+      }
+
+      await axios.post('http://localhost:3000/api/v1/subscriptions/approve', {
+        subscriptionId,
+        instituteId
+      });
+      
+      fetchInstitutes();
+    } catch (err) {
+      setError('Failed to approve subscription. Please try again.');
+      console.error('Error approving subscription:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectSubscription = async (instituteId, subscriptionId) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!subscriptionId) {
+        throw new Error('Invalid subscription ID');
+      }
+
+      await axios.post('http://localhost:3000/api/v1/subscriptions/reject', {
+        subscriptionId,
+        instituteId
+      });
+      
+      fetchInstitutes();
+    } catch (err) {
+      setError('Failed to reject subscription. Please try again.');
+      console.error('Error rejecting subscription:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRemoveSubscription = async (instituteId, subscriptionId) => {
     if (!window.confirm('Are you sure you want to remove this subscription?')) {
       return;
@@ -169,8 +224,36 @@ const SubscriptionManagement = () => {
     subscription.planName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const subscribedInstitutes = institutes.filter(institute => institute.subscription);
-  const unsubscribedInstitutes = institutes.filter(institute => !institute.subscription);
+  const subscribedInstitutes = institutes.filter(institute => 
+    institute.subscription && institute.subscriptionStatus === 'active'
+  );
+  
+  const pendingInstitutes = institutes.filter(institute => 
+    institute.subscription && institute.subscriptionStatus === 'pending'
+  );
+  
+  const unsubscribedInstitutes = institutes.filter(institute => 
+    !institute.subscription || institute.subscriptionStatus === 'rejected'
+  );
+
+  const paginateInstitutes = (institutes, type) => {
+    const startIndex = (currentPage[type] - 1) * cardsPerPage;
+    return institutes.slice(startIndex, startIndex + cardsPerPage);
+  };
+
+  const totalPages = (institutes, type) => Math.ceil(institutes.length / cardsPerPage);
+
+  const handlePageChange = (type, page) => {
+    setCurrentPage(prev => ({
+      ...prev,
+      [type]: page
+    }));
+  };
+
+  const handleViewDetails = (institute) => {
+    setSelectedInstituteDetails(institute);
+    setShowDetailsModal(true);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -305,79 +388,209 @@ const SubscriptionManagement = () => {
         </>
       ) : (
         <>
-          {/* Institute Subscriptions View */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Subscribed Institutes */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-semibold mb-4">Subscribed Institutes</h3>
+          <div className="grid grid-cols-1 gap-8">
+            {/* Pending Approvals */}
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-white">Pending Approvals</h3>
+                  <span className="bg-white text-yellow-600 px-3 py-1 rounded-full text-sm font-medium">
+                    {pendingInstitutes.length} Pending
+                  </span>
+                </div>
+              </div>
+              <div className="p-6">
               {loading ? (
                 <div className="text-center py-4">Loading...</div>
               ) : (
-                <div className="space-y-4">
-                  {subscribedInstitutes.map((institute) => (
-                    <div
-                      key={institute._id}
-                      className="border rounded p-4 hover:shadow-md transition duration-300"
-                    >
-                      <h4 className="font-semibold">{institute.username}</h4>
-                      <p className="text-sm text-gray-600">{institute.email}</p>
-                      <p className="text-sm mt-2">
-                        Plan: <span className="font-semibold">{institute.subscription?.planName}</span>
-                      </p>
-                      <p className="text-sm">
-                        Price: <span className="font-semibold">{institute.subscription?.price}</span>
-                      </p>
-                      <div className="mt-4 flex space-x-2">
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {paginateInstitutes(pendingInstitutes, 'pending').map((institute) => (
+                        <div key={institute._id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300 flex flex-col">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-gray-800 truncate">{institute.name}</h4>
+                            <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full whitespace-nowrap ml-2">Pending</span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3 truncate">{institute.email}</p>
+                          {institute.subscription && (
+                            <div className="bg-gray-50 rounded-lg p-3 mb-4 flex-grow">
+                              <p className="font-medium text-gray-800 truncate">Plan: {institute.subscription.planName || 'N/A'}</p>
+                              <p className="text-sm text-gray-600">Price: ${institute.subscription.price || '0'}</p>
+                            </div>
+                          )}
+                          <div className="flex space-x-2 mt-auto">
+                            <button
+                              onClick={() => handleApproveSubscription(institute._id, institute.subscription?._id)}
+                              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm font-medium"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectSubscription(institute._id, institute.subscription?._id)}
+                              className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm font-medium"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => handleViewDetails(institute)}
+                            className="w-full bg-gray-100 text-gray-700 mt-4 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-sm font-medium mb-2"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {totalPages(pendingInstitutes, 'pending') > 1 && (
+                      <div className="mt-6 flex justify-center space-x-2">
+                        {Array.from({ length: totalPages(pendingInstitutes, 'pending') }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handlePageChange('pending', i + 1)}
+                            className={`px-4 py-2 rounded-lg ${
+                              currentPage.pending === i + 1
+                                ? 'bg-yellow-500 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Active Subscriptions */}
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-green-400 to-green-500 p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-white">Active Subscriptions</h3>
+                  <span className="bg-white text-green-600 px-3 py-1 rounded-full text-sm font-medium">
+                    {subscribedInstitutes.length} Active
+                  </span>
+                </div>
+              </div>
+              <div className="p-6">
+                {loading ? (
+                  <div className="text-center py-4">Loading...</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {paginateInstitutes(subscribedInstitutes, 'active').map((institute) => (
+                        <div key={institute._id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300 flex flex-col">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-gray-800 truncate">{institute.name}</h4>
+                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full whitespace-nowrap ml-2">Active</span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3 truncate">{institute.email}</p>
+                          {institute.subscription && (
+                            <div className="bg-gray-50 rounded-lg p-3 mb-4 flex-grow">
+                              <p className="font-medium text-gray-800 truncate">Plan: {institute.subscription.planName || 'N/A'}</p>
+                              <p className="text-sm text-gray-600">Price: ${institute.subscription.price || '0'}</p>
+                            </div>
+                          )}
+                          <div className="flex space-x-2 mt-auto">
                         <button
                           onClick={() => setSelectedInstitute(institute)}
-                          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                              className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
                         >
                           Change Plan
                         </button>
                         <button
                           onClick={() => handleRemoveSubscription(institute._id, institute.subscription._id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                              className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm font-medium"
                         >
                           Remove
                         </button>
                       </div>
+                          <button
+                            onClick={() => handleViewDetails(institute)}
+                            className="w-full bg-gray-100 text-gray-700 mt-4 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-sm font-medium mb-2"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {subscribedInstitutes.length === 0 && (
-                    <p className="text-gray-500 text-center">No subscribed institutes found.</p>
+                    {totalPages(subscribedInstitutes, 'active') > 1 && (
+                      <div className="mt-6 flex justify-center space-x-2">
+                        {Array.from({ length: totalPages(subscribedInstitutes, 'active') }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handlePageChange('active', i + 1)}
+                            className={`px-4 py-2 rounded-lg ${
+                              currentPage.active === i + 1
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                   )}
                 </div>
-              )}
             </div>
 
             {/* Unsubscribed Institutes */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-semibold mb-4">Unsubscribed Institutes</h3>
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-400 to-gray-500 p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-white">Unsubscribed Institutes</h3>
+                  <span className="bg-white text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
+                    {unsubscribedInstitutes.length} Unsubscribed
+                  </span>
+                </div>
+              </div>
+              <div className="p-6">
               {loading ? (
                 <div className="text-center py-4">Loading...</div>
               ) : (
-                <div className="space-y-4">
-                  {unsubscribedInstitutes.map((institute) => (
-                    <div
-                      key={institute._id}
-                      className="border rounded p-4 hover:shadow-md transition duration-300"
-                    >
-                      <h4 className="font-semibold">{institute.username}</h4>
-                      <p className="text-sm text-gray-600">{institute.email}</p>
-                      <p className="text-sm mt-2 text-red-500">No active subscription</p>
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {paginateInstitutes(unsubscribedInstitutes, 'unsubscribed').map((institute) => (
+                        <div key={institute._id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300 flex flex-col">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-gray-800 truncate">{institute.name}</h4>
+                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full whitespace-nowrap ml-2">
+                              {institute.subscriptionStatus === 'rejected' ? 'Rejected' : 'Unsubscribed'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3 truncate">{institute.email}</p>
                       <button
-                        onClick={() => setSelectedInstitute(institute)}
-                        className="mt-4 bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                            onClick={() => handleViewDetails(institute)}
+                            className="w-full bg-gray-100 text-gray-700 mt-4 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-sm font-medium mb-2"
                       >
-                        Assign Plan
+                            View Details
                       </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {unsubscribedInstitutes.length === 0 && (
-                    <p className="text-gray-500 text-center">All institutes are subscribed.</p>
+                    {totalPages(unsubscribedInstitutes, 'unsubscribed') > 1 && (
+                      <div className="mt-6 flex justify-center space-x-2">
+                        {Array.from({ length: totalPages(unsubscribedInstitutes, 'unsubscribed') }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handlePageChange('unsubscribed', i + 1)}
+                            className={`px-4 py-2 rounded-lg ${
+                              currentPage.unsubscribed === i + 1
+                                ? 'bg-gray-500 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                   )}
                 </div>
-              )}
             </div>
           </div>
         </>
@@ -585,6 +798,166 @@ const SubscriptionManagement = () => {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Institute Details Modal */}
+      {showDetailsModal && selectedInstituteDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-semibold text-gray-800">Institute Details</h3>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Name</p>
+                      <p className="font-medium">{selectedInstituteDetails.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium">{selectedInstituteDetails.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Phone</p>
+                      <p className="font-medium">{selectedInstituteDetails.phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Location</p>
+                      <p className="font-medium">{selectedInstituteDetails.location || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subscription Information */}
+                {selectedInstituteDetails.subscription && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-3">Subscription Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Plan Name</p>
+                        <p className="font-medium">{selectedInstituteDetails.subscription.planName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Price</p>
+                        <p className="font-medium">${selectedInstituteDetails.subscription.price}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Status</p>
+                        <p className="font-medium capitalize">{selectedInstituteDetails.subscriptionStatus}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Features</p>
+                        <ul className="mt-1 space-y-1">
+                          {selectedInstituteDetails.subscription.features.map((feature, index) => (
+                            <li key={index} className="flex items-center text-sm">
+                              <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Additional Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Website</p>
+                      <p className="font-medium">{selectedInstituteDetails.website || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Description</p>
+                      <p className="font-medium">{selectedInstituteDetails.description || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                  >
+                    Close
+                  </button>
+                  {selectedInstituteDetails.subscriptionStatus === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleApproveSubscription(selectedInstituteDetails._id, selectedInstituteDetails.subscription?._id);
+                          setShowDetailsModal(false);
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleRejectSubscription(selectedInstituteDetails._id, selectedInstituteDetails.subscription?._id);
+                          setShowDetailsModal(false);
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {selectedInstituteDetails.subscriptionStatus === 'active' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedInstitute(selectedInstituteDetails);
+                          setShowDetailsModal(false);
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                      >
+                        Change Plan
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleRemoveSubscription(selectedInstituteDetails._id, selectedInstituteDetails.subscription._id);
+                          setShowDetailsModal(false);
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+                  {(!selectedInstituteDetails.subscription || selectedInstituteDetails.subscriptionStatus === 'rejected') && (
+                    <button
+                      onClick={() => {
+                        setSelectedInstitute(selectedInstituteDetails);
+                        setShowDetailsModal(false);
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    >
+                      Assign Plan
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

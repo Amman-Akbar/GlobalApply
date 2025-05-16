@@ -117,16 +117,83 @@ export const assignSubscription = async (req, res) => {
       }
     }
 
-    // Update institute's subscription
+    // Update institute's subscription with pending status
     institute.subscription = subscriptionId;
+    institute.subscriptionStatus = 'pending';
     await institute.save();
 
-    // Increment new subscription's institute count
-    await subscription.incrementInstitutes();
-
-    res.json({ message: 'Subscription assigned successfully', institute });
+    res.json({ message: 'Subscription request submitted successfully', institute });
   } catch (error) {
     res.status(500).json({ message: 'Error assigning subscription', error: error.message });
+  }
+};
+
+// Approve subscription for institute
+export const approveSubscription = async (req, res) => {
+  try {
+    const { subscriptionId, instituteId } = req.body;
+
+    const subscription = await Subscription.findById(subscriptionId);
+    if (!subscription) {
+      return res.status(404).json({ message: 'Subscription plan not found' });
+    }
+
+    const institute = await Institute.findById(instituteId);
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    if (institute.subscription?.toString() !== subscriptionId) {
+      return res.status(400).json({ message: 'Institute is not subscribed to this plan' });
+    }
+
+    if (institute.subscriptionStatus !== 'pending') {
+      return res.status(400).json({ message: 'Subscription is not in pending state' });
+    }
+
+    // Update institute's subscription status to active
+    institute.subscriptionStatus = 'active';
+    await institute.save();
+
+    // Increment subscription's institute count
+    await subscription.incrementInstitutes();
+
+    res.json({ message: 'Subscription approved successfully', institute });
+  } catch (error) {
+    res.status(500).json({ message: 'Error approving subscription', error: error.message });
+  }
+};
+
+// Reject subscription for institute
+export const rejectSubscription = async (req, res) => {
+  try {
+    const { subscriptionId, instituteId } = req.body;
+
+    const subscription = await Subscription.findById(subscriptionId);
+    if (!subscription) {
+      return res.status(404).json({ message: 'Subscription plan not found' });
+    }
+
+    const institute = await Institute.findById(instituteId);
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    if (institute.subscription?.toString() !== subscriptionId) {
+      return res.status(400).json({ message: 'Institute is not subscribed to this plan' });
+    }
+
+    if (institute.subscriptionStatus !== 'pending') {
+      return res.status(400).json({ message: 'Subscription is not in pending state' });
+    }
+
+    // Update institute's subscription status to rejected
+    institute.subscriptionStatus = 'rejected';
+    await institute.save();
+
+    res.json({ message: 'Subscription rejected successfully', institute });
+  } catch (error) {
+    res.status(500).json({ message: 'Error rejecting subscription', error: error.message });
   }
 };
 

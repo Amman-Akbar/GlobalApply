@@ -1,22 +1,29 @@
 import express from 'express';
-import { addInstitute, deleteInstitute, getAllInstitutes,getActiveInstitutes, getTrendingInstitutes,getInstituteById, getInstituteByUserId,getLatestListings, updateInstitute,getFeaturedInstitutes, approveInstitute, rejectInstitute } from '../controllers/institute.controller.js';
+import {
+  getAllInstitutes,
+  getInstituteById,
+  addInstitute,
+  updateInstitute,
+  deleteInstitute,
+  getFeaturedInstitutes,
+  getTrendingInstitutes,
+  getLatestListings,
+  getActiveInstitutes
+} from '../controllers/institute.controller.js';
 
 const router = express.Router();
 
-// Specific routes first
+// Special routes
 router.get('/featured', getFeaturedInstitutes);
-router.get('/active', getActiveInstitutes);
 router.get('/trending', getTrendingInstitutes);
 router.get('/latest-listings', getLatestListings);
-router.get('/user/:userId', getInstituteByUserId);
+router.get('/active', getActiveInstitutes);
 
-// Parameterized routes last
+// General routes
 router.get('/', getAllInstitutes);
 router.get('/:id', getInstituteById);
 router.post('/', addInstitute);
 router.put('/:id', updateInstitute);
 router.delete('/:id', deleteInstitute);
-router.put('/:id/approve', approveInstitute);
-router.put('/:id/reject', rejectInstitute);
 
 export default router;

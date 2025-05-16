@@ -19,7 +19,7 @@ export const UserProvider = ({ children }) => {
     }
 
     try {
-      const response = await axios.get('http://localhost:3000/api/auth/me', {
+      const response = await axios.get('http://localhost:3000/api/v1/auth/me', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -27,7 +27,7 @@ export const UserProvider = ({ children }) => {
 
       const { user: userData, role: userRole } = response.data;
       setUser(userData);
-      setRole(userRole);
+      setRole(userRole.toLowerCase());
     } catch (error) {
       console.error('Error fetching user data:', error);
       localStorage.removeItem('token'); // Clear invalid token

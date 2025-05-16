@@ -1,4 +1,5 @@
 import Institute from "../models/institute.model.js";
+import User from "../models/user.model.js";
 
 // GET all institutes
 export const getAllInstitutes = async (req, res) => {
@@ -40,6 +41,32 @@ export const addInstitute = async (req, res) => {
     if (!instituteData) {
       return res.status(400).json({ success: false, message: "Institute data is required" });
     }
+
+    // Check if userId is provided
+    if (!instituteData.userId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "userId is required for creating an institute" 
+      });
+    }
+
+    // Verify that the user exists
+    const user = await User.findById(instituteData.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found with the provided userId" 
+      });
+    }
+
+    // Verify that the user has the institute role
+    if (user.role !== 'institute') {
+      return res.status(400).json({ 
+        success: false, 
+        message: "User must have the institute role" 
+      });
+    }
+
     const newInstitute = await Institute.create(instituteData);
     res.status(201).json({ success: true, data: newInstitute });
   } catch (error) {

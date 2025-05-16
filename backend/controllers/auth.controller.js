@@ -105,7 +105,7 @@ export const login = async (req, res) => {
 };
 
 export const registerInstitute = async (req, res) => {
-  const { name, email, password, contact, location, website, registrationNumber } = req.body;
+  const { name, email, password, contact, location, website, registrationNumber, description, logo } = req.body;
   console.log(req.body);
 
   try {
@@ -124,6 +124,7 @@ export const registerInstitute = async (req, res) => {
       email,
       password: hashedPassword,
       role: 'institute', // Set the role to 'institute'
+      image: logo, // Add the logo as the user's image
     });
 
     await newUser.save();
@@ -136,8 +137,15 @@ export const registerInstitute = async (req, res) => {
       location,
       website,
       registrationNumber,
+      description,
+      logo,
       status: 'pending', // Set the status to 'pending' for admin approval
       userId: newUser._id, // Associate the institute with the user
+      departments: [], // Initialize empty departments array
+      facilities: [], // Initialize empty facilities array
+      rating: 0, // Initialize rating
+      totalReviews: 0, // Initialize total reviews
+      featured: false, // Initialize featured status
     });
 
     await newInstitute.save();
@@ -155,7 +163,13 @@ export const registerInstitute = async (req, res) => {
         username: newUser.username,
         email: newUser.email,
         role: newUser.role,
+        image: newUser.image,
       },
+      institute: {
+        id: newInstitute._id,
+        name: newInstitute.name,
+        status: newInstitute.status,
+      }
     });
   } catch (error) {
     console.error('Error in registerInstitute:', error); // Log the error for debugging

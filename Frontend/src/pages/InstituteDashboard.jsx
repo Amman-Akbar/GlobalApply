@@ -42,7 +42,7 @@ function InstituteDashboard() {
       };
 
       // First get the user data to get the user ID
-      const userResponse = await axios.get("http://localhost:3000/api/auth/me", { headers });
+      const userResponse = await axios.get("http://localhost:3000/api/v1/auth/me", { headers });
       const userId = userResponse.data.user.id;
 
       if (!userId) {

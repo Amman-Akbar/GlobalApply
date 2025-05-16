@@ -139,19 +139,59 @@ const RegisterInstitute = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+    
     try {
-      const response = await axios.post("http://localhost:3000/api/v1/institute", formData);
-      if (response.data.success) {
-        // Store the institute ID in localStorage
-        localStorage.setItem('instituteId', response.data.data._id);
-        alert("Institute registered successfully!");
-        navigate("/institute-dashboard");
+      // First, register the user account
+      const userResponse = await axios.post("http://localhost:3000/api/v1/auth/register-institute", {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        contact: formData.contact,
+        location: formData.location,
+        website: formData.website,
+        registrationNumber: formData.registrationNumber,
+        description: formData.description,
+        logo: formData.logo
+      });
+
+      if (userResponse.data.token) {
+        // Store the token
+        localStorage.setItem('token', userResponse.data.token);
+        
+        // Create the institute with the user ID
+        const instituteData = {
+          ...formData,
+          userId: userResponse.data.user.id
+        };
+
+        const instituteResponse = await axios.post(
+          "http://localhost:3000/api/v1/institute",
+          instituteData,
+          {
+            headers: {
+              'Authorization': `Bearer ${userResponse.data.token}`
+            }
+          }
+        );
+
+        if (instituteResponse.data.success) {
+          // Store the institute ID in localStorage
+          localStorage.setItem('instituteId', instituteResponse.data.data._id);
+          alert("Institute registered successfully!");
+          navigate("/institute-dashboard");
+        } else {
+          setError("Institute registration failed. Please try again.");
+        }
       } else {
-        setError("Registration failed. Please try again.");
+        setError("User registration failed. Please try again.");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");
       console.error("Error registering institute:", err);
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -23,7 +23,11 @@ const instituteSchema = new mongoose.Schema({
   registrationNumber: { type: String, required: true },
   feeRange: { type: String },
   logo: { type: String },
-  subscription: { type: String },
+  subscription: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subscription',
+    default: null 
+  },
   description: { type: String },
   image: { type: String },
   rating: { type: Number, default: 0 },

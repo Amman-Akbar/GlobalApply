@@ -4,6 +4,7 @@ import InstituteRouter from './routes/institute.route.js'
 import AuthRouter from './routes/auth.routes.js'
 import UserRouter from './routes/user.route.js'
 import SubscriptionRouter from './routes/subscription.routes.js'
+import StudentRouter from './routes/student.route.js'
 import connectDB from './config/DB.js'
 import cors from 'cors'
 
@@ -17,6 +18,7 @@ app.use('/api/v1/institute', InstituteRouter)
 app.use('/api/v1/auth', AuthRouter)
 app.use('/api/v1/users', UserRouter)
 app.use('/api/v1/subscriptions', SubscriptionRouter)
+app.use('/api/v1/students', StudentRouter)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

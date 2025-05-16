@@ -5,8 +5,11 @@ import Applications from '../components/StudentDashboard/Applications';
 import Counseling from '../components/StudentDashboard/Counseling';
 import Recommendations from '../components/StudentDashboard/Recommendations';
 import Wishlist from '../components/StudentDashboard/Wishlist';
+import { useUser } from '../context/UserContext';
 
 const StudentDashboard = () => {
+  const { user } = useUser();
+
   // References for sections
   const profilecardRef = useRef(null);
   const applicationsRef = useRef(null);

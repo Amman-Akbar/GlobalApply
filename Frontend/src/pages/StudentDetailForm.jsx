@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useUser } from '../context/UserContext';
 
 const StudentDetailForm = () => {
+  const { user } = useUser();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     gender: '',
     dateOfBirth: '',
     nationality: '',
-    email: '',
+    email: user?.email || '',
     phone: '',
     address: '',
     college: '',
@@ -28,6 +31,8 @@ const StudentDetailForm = () => {
   });
 
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -53,10 +58,45 @@ const StudentDetailForm = () => {
     setStep((prevStep) => prevStep - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form Data:', formData);
-    navigate('/student-dashboard');
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create FormData object for file uploads
+      const formDataToSend = new FormData();
+      
+      // Append all form fields
+      Object.keys(formData).forEach(key => {
+        if (formData[key] !== null) {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+
+      // Add userId to the form data
+      formDataToSend.append('userId', user.id);
+
+      // Make API call to create student profile
+      const response = await axios.post(
+        'http://localhost:3000/api/v1/students',
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        navigate('/student-dashboard');
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to submit form. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const progressPercentage = (step / 4) * 100;
@@ -67,6 +107,7 @@ const StudentDetailForm = () => {
       </div>
     <div className="max-w-6xl mx-auto p-6 py-10">
       <h1 className="text-3xl font-semibold text-[#1D5EC7] mb-6">Student Admission Form</h1>
+      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
       <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
         <div
           className="bg-[#1D5EC7] h-2 rounded-full"
@@ -307,8 +348,12 @@ const StudentDetailForm = () => {
               Next
             </button>
           ) : (
-            <button type="submit" className="bg-green-500 text-white p-3 rounded-lg">
-              Submit Application
+            <button 
+              type="submit" 
+              className="bg-green-500 text-white p-3 rounded-lg"
+              disabled={loading}
+            >
+              {loading ? 'Submitting...' : 'Submit Application'}
             </button>
           )}
         </div>

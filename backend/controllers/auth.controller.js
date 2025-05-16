@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import Institute from "../models/institute.model.js";
+import Student from "../models/student.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -13,7 +14,7 @@ const generateToken = (user) => {
 };
 
 export const signup = async (req, res) => {
-    const { username, email, password, image } = req.body;
+    const { username, email, password, image, role } = req.body;
   
     try {
       // Check if user already exists
@@ -31,16 +32,54 @@ export const signup = async (req, res) => {
         email,
         password: hashedPassword,
         image,
+        role: role || 'student', // Default to student role if not specified
       });
   
       await newUser.save();
+      console.log('User created successfully:', newUser._id);
+
+      // If the user is a student, create a student profile
+      if (newUser.role === 'student') {
+        try {
+          const newStudent = new Student({
+            userId: newUser._id,
+            firstName: username,
+            email: email,
+            status: 'approved'
+          });
+
+          const savedStudent = await newStudent.save();
+          console.log('Student profile created successfully:', savedStudent._id);
+        } catch (studentError) {
+          console.error('Error creating student profile:', studentError);
+          // Delete the user if student profile creation fails
+          await User.findByIdAndDelete(newUser._id);
+          return res.status(500).json({ 
+            message: 'Failed to create student profile',
+            error: studentError.message 
+          });
+        }
+      }
   
       // Generate JWT token
       const token = generateToken(newUser);
   
-      res.status(201).json({ token, user: newUser });
+      return res.status(201).json({ 
+        token, 
+        user: {
+          id: newUser._id,
+          username: newUser.username,
+          email: newUser.email,
+          role: newUser.role,
+          image: newUser.image,
+        }
+      });
     } catch (error) {
-      res.status(500).json({ message: 'Server error' });
+      console.error('Error in signup:', error);
+      return res.status(500).json({ 
+        message: 'Server error',
+        error: error.message 
+      });
     }
 };
 
@@ -180,6 +219,95 @@ export const registerInstitute = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in registerInstitute:', error); // Log the error for debugging
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const registerStudent = async (req, res) => {
+  const { 
+    username, email, password, image,
+    firstName, lastName, gender, dateOfBirth, nationality,
+    college, graduationYear, grade,
+    phone, address,
+    parentName, parentEmail, parentPhone,
+    emergencyContactName, emergencyContactPhone,
+    disability,
+    cnicImage, fatherCnicImage, ResultImage12th, ResultImage10th, EntryTestImage
+  } = req.body;
+
+  try {
+    // Step 1: Check if the email is already registered
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    // Step 2: Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Step 3: Create a new user for authentication
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      role: 'student',
+      image,
+    });
+
+    await newUser.save();
+
+    // Step 4: Create a new student profile
+    const newStudent = new Student({
+      firstName,
+      lastName,
+      gender,
+      dateOfBirth,
+      nationality,
+      college,
+      graduationYear,
+      grade,
+      email,
+      phone,
+      address,
+      parentName,
+      parentEmail,
+      parentPhone,
+      emergencyContactName,
+      emergencyContactPhone,
+      disability,
+      cnicImage,
+      fatherCnicImage,
+      ResultImage12th,
+      ResultImage10th,
+      EntryTestImage,
+      userId: newUser._id,
+      status: 'pending'
+    });
+
+    await newStudent.save();
+
+    // Step 5: Generate a JWT token
+    const token = generateToken(newUser);
+
+    // Step 6: Return the token and user data
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+        image: newUser.image,
+      },
+      student: {
+        id: newStudent._id,
+        firstName: newStudent.firstName,
+        lastName: newStudent.lastName,
+        status: newStudent.status,
+      }
+    });
+  } catch (error) {
+    console.error('Error in registerStudent:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import axios from 'axios';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,33 +28,62 @@ ChartJS.register(
 );
 
 const Analytics = () => {
-  // Simulated data for analytics
   const [data, setData] = useState({
     users: 0,
     activeSubscriptions: 0,
     totalApplications: 0,
-    monthlyApplications: [],
+    monthlyApplications: Array(12).fill(0),
     subscriptionBreakdown: [],
-    supportTickets: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Fetch analytics data (simulate API call)
+  // Fetch analytics data from API
   useEffect(() => {
     const fetchAnalytics = async () => {
-      // Simulated API data
-      const analyticsData = {
-        users: 1500,
-        activeSubscriptions: 1200,
-        totalApplications: 5000,
-        monthlyApplications: [200, 250, 400, 450, 300, 350, 400, 420, 500, 600, 700, 800],
-        subscriptionBreakdown: [60, 30, 10], // e.g., Basic, Pro, Enterprise
-        supportTickets: 15,
-      };
-      setData(analyticsData);
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await axios.get('http://localhost:3000/api/v1/analytics');
+
+        if (response.data.success && response.data.data) {
+          const analyticsData = response.data.data;
+          
+          // Validate the received data
+          if (
+            typeof analyticsData.users === 'number' &&
+            typeof analyticsData.activeSubscriptions === 'number' &&
+            typeof analyticsData.totalApplications === 'number' &&
+            Array.isArray(analyticsData.monthlyApplications) &&
+            analyticsData.monthlyApplications.length === 12 &&
+            Array.isArray(analyticsData.subscriptionBreakdown)
+          ) {
+            setData(analyticsData);
+          } else {
+            throw new Error('Invalid data structure received from server');
+          }
+        } else {
+          throw new Error('Invalid response format from server');
+        }
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        setError(error.message || 'Failed to load analytics data');
+        
+        // Implement retry logic
+        if (retryCount < 3) {
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 2000); // Retry after 2 seconds
+        }
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchAnalytics();
-  }, []);
+  }, [retryCount]);
 
   // Line chart for monthly applications
   const lineChartData = {
@@ -86,35 +116,57 @@ const Analytics = () => {
 
   // Bar chart for total metrics
   const barChartData = {
-    labels: ['Users', 'Active Subscriptions', 'Applications', 'Support Tickets'],
+    labels: ['Users', 'Active Subscriptions', 'Applications'],
     datasets: [
       {
         label: 'Totals',
-        data: [data.users, data.activeSubscriptions, data.totalApplications, data.supportTickets],
-        backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#F44336'],
+        data: [data.users, data.activeSubscriptions, data.totalApplications],
+        backgroundColor: ['#4CAF50', '#2196F3', '#FFC107'],
       },
     ],
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-xl font-semibold text-gray-700">
+          {retryCount > 0 ? `Retrying... (${retryCount}/3)` : 'Loading analytics data...'}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64">
+        <div className="text-xl font-semibold text-red-600 mb-4">{error}</div>
+        {retryCount < 3 && (
+          <button
+            onClick={() => setRetryCount(prev => prev + 1)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-white shadow-lg rounded-lg p-6">
           <h3 className="text-gray-500 font-semibold">Total Users</h3>
-          <p className="text-3xl font-bold text-[#1D5EC7]">{data.users}</p>
+          <p className="text-3xl font-bold text-[#1D5EC7]">{data.users.toLocaleString()}</p>
         </div>
         <div className="bg-white shadow-lg rounded-lg p-6">
           <h3 className="text-gray-500 font-semibold">Active Subscriptions</h3>
-          <p className="text-3xl font-bold text-[#4CAF50]">{data.activeSubscriptions}</p>
+          <p className="text-3xl font-bold text-[#4CAF50]">{data.activeSubscriptions.toLocaleString()}</p>
         </div>
         <div className="bg-white shadow-lg rounded-lg p-6">
           <h3 className="text-gray-500 font-semibold">Total Applications</h3>
-          <p className="text-3xl font-bold text-[#2196F3]">{data.totalApplications}</p>
-        </div>
-        <div className="bg-white shadow-lg rounded-lg p-6">
-          <h3 className="text-gray-500 font-semibold">Support Tickets</h3>
-          <p className="text-3xl font-bold text-[#F44336]">{data.supportTickets}</p>
+          <p className="text-3xl font-bold text-[#2196F3]">{data.totalApplications.toLocaleString()}</p>
         </div>
       </div>
 

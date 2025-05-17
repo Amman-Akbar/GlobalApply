@@ -64,7 +64,7 @@ const ActiveListings = () => {
         const sortedDegreeCount = Object.entries(degreeCount)
           .map(([degree, count]) => ({ degree, count }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 7);
+          .slice(0, 6);
 
         setLatestListings(sortedDegreeCount);
       } catch (error) {
@@ -101,14 +101,14 @@ const ActiveListings = () => {
   return (
     <div className="flex flex-wrap w-full h-full bg-gray-100 p-6">
       {/* Left Section: Active Postings */}
-      <div className="w-full md:w-2/3 p-4">
+      <div className="w-full md:w-2/3 p-4 flex flex-col">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">Active Admission</h2>
         {activePostings.length === 0 ? (
-          <div className="bg-white rounded-md shadow-md p-6 text-center">
+          <div className="bg-white rounded-md shadow-md p-6 text-center flex-grow">
             <p className="text-gray-600">No active admissions available at the moment.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-md shadow-md">
+          <div className="overflow-x-auto bg-white rounded-md shadow-md flex-grow flex flex-col">
             <table className="min-w-full text-left text-gray-800">
               <thead className="bg-gray-100">
                 <tr>
@@ -153,7 +153,7 @@ const ActiveListings = () => {
               </tbody>
             </table>
             {activePostings.length > postingsPerPage && (
-              <div className="flex justify-end gap-2 my-4 mx-4">
+              <div className="flex justify-end gap-2 my-4 mx-4 mt-auto">
                 <button
                   className="text-black py-2 px-3 rounded-md border border-black transition duration-200 disabled:opacity-50"
                   onClick={() => setCurrentPage(1)}
@@ -189,15 +189,15 @@ const ActiveListings = () => {
       </div>
 
       {/* Right Section: Latest Listings */}
-      <div className="w-full md:w-1/3 p-4">
+      <div className="w-full md:w-1/3 p-4 flex flex-col">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">Latest Listings</h2>
         {latestListings.length === 0 ? (
-          <div className="bg-white rounded-md shadow-md p-6 text-center">
+          <div className="bg-white rounded-md shadow-md p-6 text-center flex-grow">
             <p className="text-gray-600">No latest listings available.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-md p-4 shadow-md">
-            <ul>
+          <div className="bg-white rounded-md p-4 shadow-md flex-grow flex flex-col">
+            <ul className="flex-grow">
               {latestListings.map((listing, index) => (
                 <li
                   key={index}

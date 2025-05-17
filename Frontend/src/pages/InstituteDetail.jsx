@@ -221,7 +221,7 @@ const InstituteDetail = () => {
           duration: '',
           levelofProgram: '',
           deadline: '',
-          isActive: false
+          isActive: true
         }]
       }]
     }));
@@ -243,7 +243,7 @@ const InstituteDetail = () => {
       duration: '',
       levelofProgram: '',
       deadline: '',
-      isActive: false
+      isActive: true
     });
     setEditedInstitute(prev => ({
       ...prev,

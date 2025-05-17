@@ -138,4 +138,94 @@ export const checkWishlistStatus = async (req, res) => {
       error: error.message
     });
   }
+};
+
+export const getAllWishlists = async (req, res) => {
+  try {
+    const wishlist = await Wishlist.find()
+      .populate({
+        path: 'instituteId',
+        select: 'name logo location image departments'
+      })
+      .populate({
+        path: 'userId',
+        select: 'name email'
+      })
+      .sort({ createdAt: -1 });
+
+    // Process the wishlist to include program details
+    const processedWishlist = wishlist.map(item => {
+      const [deptIndex, progIndex] = item.programId.split('-').map(Number);
+      const program = item.instituteId.departments[deptIndex]?.programs[progIndex];
+      
+      return {
+        ...item.toObject(),
+        programDetails: program ? {
+          name: program.name,
+          semesterFee: program.semesterFee,
+          duration: program.duration,
+          levelofProgram: program.levelofProgram,
+          department: item.instituteId.departments[deptIndex]?.name
+        } : null
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: processedWishlist
+    });
+  } catch (error) {
+    console.error('Error fetching all wishlists:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch wishlists',
+      error: error.message
+    });
+  }
+};
+
+export const getInstituteWishlists = async (req, res) => {
+  try {
+    const { instituteId } = req.params;
+
+    const wishlist = await Wishlist.find({ instituteId })
+      .populate({
+        path: 'userId',
+        select: 'name email'
+      })
+      .populate({
+        path: 'instituteId',
+        select: 'name logo location image departments'
+      })
+      .sort({ createdAt: -1 });
+
+    // Process the wishlist to include program details
+    const processedWishlist = wishlist.map(item => {
+      const [deptIndex, progIndex] = item.programId.split('-').map(Number);
+      const program = item.instituteId.departments[deptIndex]?.programs[progIndex];
+      
+      return {
+        ...item.toObject(),
+        programDetails: program ? {
+          name: program.name,
+          semesterFee: program.semesterFee,
+          duration: program.duration,
+          levelofProgram: program.levelofProgram,
+          department: item.instituteId.departments[deptIndex]?.name
+        } : null
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: processedWishlist
+    });
+  } catch (error) {
+    console.error('Error fetching institute wishlists:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch institute wishlists',
+      error: error.message
+    });
+  }
 }; 

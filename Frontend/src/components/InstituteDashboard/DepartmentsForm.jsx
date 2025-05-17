@@ -16,6 +16,7 @@ const DepartmentsForm = ({ formData, onChange }) => {
     duration: "",
     levelofProgram: "",
     deadline: "",
+    isActive: true
   });
   const [expandedDepartments, setExpandedDepartments] = useState({});
   
@@ -48,6 +49,7 @@ const DepartmentsForm = ({ formData, onChange }) => {
         duration: "",
         levelofProgram: "",
         deadline: "",
+        isActive: true
       });
     }
   };

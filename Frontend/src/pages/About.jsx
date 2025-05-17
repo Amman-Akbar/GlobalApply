@@ -59,7 +59,7 @@ const About = () => {
           <h2 className="text-3xl font-bold mb-6 text-gray-800">Who We Are</h2>
           <p className="text-gray-700 text-lg mb-4">
             GlobalApply is a comprehensive platform designed to help students explore and apply to institutes globally. 
-            From finding the right institute to discovering scholarships and getting career counseling, 
+            From finding the right institute to getting career counseling, 
             we streamline the entire process, making higher education more accessible and hassle-free.
           </p>
           <p className="text-gray-700 text-lg">

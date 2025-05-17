@@ -6,7 +6,7 @@ const UniversityFee = () => {
       <iframe
         src="http://localhost:8501"  // Replace with your Streamlit app's URL
         width="100%"
-        height="400px"
+        height="600px"
         style={{ border: "none" }}
       ></iframe>
     </div>

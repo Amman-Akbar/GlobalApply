@@ -8,7 +8,7 @@ const Banner = () => {
           Explore educational opportunities with GlobalApply!
         </span>
         <span className="text-2xl md:text-3xl lg:text-4xl font-semibold mx-4">
-          Find the best institutes, scholarships, and career counseling all in one place.
+          Find the best institutes and career counseling all in one place.
         </span>
       </div>
     </div>

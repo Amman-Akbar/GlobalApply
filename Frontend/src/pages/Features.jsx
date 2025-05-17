@@ -30,7 +30,7 @@ const Features = () => {
       icon: faSearch,
       title: "Advanced Search & Filters",
       description:
-        "Easily find institutes, scholarships, and programs that match your preferences. Use filters like tuition fees, program duration, location, and more for a seamless experience.",
+        "Easily find institutes and programs that match your preferences. Use filters like tuition fees, program duration, location, and more for a seamless experience.",
     },
     {
       icon: faHandsHelping,
@@ -104,7 +104,7 @@ const Features = () => {
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8 text-gray-800">Why Choose GlobalApply?</h2>
           <p className="text-gray-700 text-lg leading-relaxed mb-6">
-            GlobalApply is designed to be your ultimate academic companion. From discovering top institutes to securing scholarships and exploring virtual campuses, our platform is built to empower students every step of the way. We leverage advanced technology, expert guidance, and personalized recommendations to ensure your journey is smooth and successful. 
+            GlobalApply is designed to be your ultimate academic companion. From discovering top institutes to exploring virtual campuses, our platform is built to empower students every step of the way. We leverage advanced technology, expert guidance, and personalized recommendations to ensure your journey is smooth and successful. 
           </p>
           <p className="text-gray-700 text-lg leading-relaxed">
             Whether you're looking for guidance in choosing a career path, assistance in finding the perfect institute, or exploring funding opportunities, GlobalApply has you covered. Join thousands of students worldwide who trust us to turn their academic dreams into reality.

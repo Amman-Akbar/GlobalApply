@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useUser } from '../../context/UserContext';
 
 // Modal for editing application
 const EditApplicationModal = ({ application, onSave, onClose }) => {
@@ -79,115 +81,57 @@ const EditApplicationModal = ({ application, onSave, onClose }) => {
   );
 };
 
-const Applications = () => {
-  const [applications, setApplications] = useState([
-    {
-      id: 1,
-      studentName: "Ahmed Khan",
-      program: "Computer Science",
-      status: "Pending",
-      progress: 50,
-      submissionDate: "2024-12-01",
-      reviewDate: "2024-12-10",
-    },
-    {
-      id: 2,
-      studentName: "Sara Ali",
-      program: "Business Administration",
-      status: "Reviewed",
-      progress: 100,
-      submissionDate: "2024-11-15",
-      reviewDate: "2024-11-25",
-    },
-    {
-      id: 3,
-      studentName: "Ali Raza",
-      program: "Mechanical Engineering",
-      status: "Under Review",
-      progress: 75,
-      submissionDate: "2024-11-20",
-      reviewDate: "2024-12-05",
-    },
-    {
-      id: 4,
-      studentName: "Fatima Nasir",
-      program: "Electrical Engineering",
-      status: "Rejected",
-      progress: 30,
-      submissionDate: "2024-10-05",
-      reviewDate: "2024-10-15",
-    },
-    {
-      id: 5,
-      studentName: "Zainab Shah",
-      program: "Pharmacy",
-      status: "Pending",
-      progress: 60,
-      submissionDate: "2024-11-30",
-      reviewDate: "2024-12-10",
-    },
-  ]);
-  
+const Applications = ({ instituteId: propInstituteId }) => {
+  const { user } = useUser();
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const [editingApp, setEditingApp] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  useEffect(() => {
+    const fetchApplications = async () => {
+      const instituteId = propInstituteId || user?.id;
+      if (!instituteId) return;
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`http://localhost:3000/api/v1/applications/institute/${instituteId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setApplications(response.data.data || []);
+      } catch (err) {
+        setError('Failed to fetch applications.');
+        setApplications([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplications();
+  }, [user, propInstituteId]);
 
-  const [confirmationMessage, setConfirmationMessage] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [appToConfirm, setAppToConfirm] = useState(null);
-
-  const handleEdit = (app) => {
-    setEditingApp(app);
-    setShowEditModal(true);
+  const handleStatusChange = async (appId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.patch(`http://localhost:3000/api/v1/applications/${appId}`, { status: newStatus }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setApplications((prev) =>
+        prev.map((app) =>
+          app._id === appId ? { ...app, status: response.data.data.status } : app
+        )
+      );
+    } catch (err) {
+      setError('Failed to update status.');
+    }
   };
 
-  const handleSaveApplication = (updatedApp) => {
-    setApplications((prevApps) =>
-      prevApps.map((app) =>
-        app.id === updatedApp.id ? { ...app, ...updatedApp } : app
-      )
-    );
-  };
-
-  const handleReview = (app) => {
-    setConfirmationMessage(`Are you sure you want to review the application of ${app.studentName}?`);
-    setAppToConfirm({ ...app, status: 'Under Review' }); // Set the status to 'Under Review'
-    setShowConfirmModal(true);
-  };
-  
-  const handleAccept = (app) => {
-    setConfirmationMessage(`Are you sure you want to accept the application of ${app.studentName}?`);
-    setAppToConfirm({ ...app, status: 'Accepted' }); // Set the status to 'Accepted'
-    setShowConfirmModal(true);
-  };
-  
-  const handleReject = (app) => {
-    setConfirmationMessage(`Are you sure you want to reject the application of ${app.studentName}?`);
-    setAppToConfirm({ ...app, status: 'Rejected' }); // Set the status to 'Rejected'
-    setShowConfirmModal(true);
-  };
-  
-
-  const confirmAction = () => {
-    setApplications((prevApps) =>
-      prevApps.map((app) =>
-        app.id === appToConfirm.id
-          ? {
-              ...app,
-              status: appToConfirm.status, // Set the status to the chosen action
-              progress: appToConfirm.status === 'Accepted' ? 100 : app.progress, // If accepted, set progress to 100
-            }
-          : app
-      )
-    );
-    setShowConfirmModal(false);
-    setAppToConfirm(null);
-  };
-  
+  if (loading) {
+    return <div className="text-center py-10 text-lg text-gray-500">Loading applications...</div>;
+  }
 
   return (
     <div className="bg-white shadow-lg rounded-lg p-6">
       <h3 className="font-semibold text-xl text-gray-700">Student Applications</h3>
+      {error && <div className="text-red-500 mb-4">{error}</div>}
       <div className="overflow-x-auto mt-6">
         <table className="min-w-full table-auto">
           <thead>
@@ -195,89 +139,44 @@ const Applications = () => {
               <th className="px-4 py-2">Student Name</th>
               <th className="px-4 py-2">Program</th>
               <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Progress</th>
-              <th className="px-4 py-2">Submission Date</th>
-              <th className="px-4 py-2">Review Date</th>
+              <th className="px-4 py-2">Applied On</th>
               <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {applications.map((app) => (
-              <tr key={app.id} className="border-t border-gray-200 hover:bg-gray-50 transition duration-300">
-                <td className="px-4 py-2 text-gray-800">{app.studentName}</td>
-                <td className="px-4 py-2 text-gray-600">{app.program}</td>
-                <td className="px-4 py-2 text-gray-700">{app.status}</td>
-                <td className="px-4 py-2">
-                  <div className="w-full bg-gray-200 h-2 rounded-full">
-                    <div
-                      className="bg-[#1D5EC7] h-2 rounded-full"
-                      style={{ width: `${app.progress}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between mt-1 text-sm text-gray-500">
-                    <span>{app.progress}%</span>
-                    <span>Progress</span>
-                  </div>
-                </td>
-                <td className="px-4 py-2 text-gray-600">{app.submissionDate}</td>
-                <td className="px-4 py-2 text-gray-600">{app.reviewDate}</td>
-                <td className="px-4 py-2 flex space-x-2">
-                  <button
-                    className="text-[#1D5EC7] hover:text-[#306fd6] transition duration-300"
-                    onClick={() => handleEdit(app)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="text-[#1D5EC7] hover:text-[#306fd6] transition duration-300"
-                    onClick={() => handleReview(app)}
-                  >
-                    Review
-                  </button>
-                  <button
-                    className="text-[#1D5EC7] hover:text-[#306fd6] transition duration-300"
-                    onClick={() => handleAccept(app)}
-                  >
-                    Accept
-                  </button>
-                  <button
-                    className="text-[#1D5EC7] hover:text-[#306fd6] transition duration-300"
-                    onClick={() => handleReject(app)}
-                  >
-                    Reject
-                  </button>
-                </td>
+            {applications.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="text-center text-gray-500 py-6">No applications found.</td>
               </tr>
-            ))}
+            ) : (
+              applications.map((app) => (
+                <tr key={app._id} className="border-t border-gray-200 hover:bg-gray-50 transition duration-300">
+                  <td className="px-4 py-2 text-gray-800">{app.student?.username || 'Student'}</td>
+                  <td className="px-4 py-2 text-gray-600">{app.program}</td>
+                  <td className="px-4 py-2 text-gray-700 capitalize">{app.status}</td>
+                  <td className="px-4 py-2 text-gray-600">{new Date(app.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 flex space-x-2">
+                    <button
+                      className="text-green-600 hover:text-green-800 transition duration-300"
+                      onClick={() => handleStatusChange(app._id, 'approved')}
+                      disabled={app.status === 'approved'}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="text-red-600 hover:text-red-800 transition duration-300"
+                      onClick={() => handleStatusChange(app._id, 'rejected')}
+                      disabled={app.status === 'rejected'}
+                    >
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
-
-      {showEditModal && (
-        <EditApplicationModal application={editingApp} onSave={handleSaveApplication} onClose={() => setShowEditModal(false)} />
-      )}
-
-      {showConfirmModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h3 className="text-xl font-semibold text-gray-700">{confirmationMessage}</h3>
-            <div className="mt-4 flex justify-end space-x-4">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="bg-gray-300 p-2 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmAction}
-                className="bg-[#1D5EC7] text-white p-2 rounded-md"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

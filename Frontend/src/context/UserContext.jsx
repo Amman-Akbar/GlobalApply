@@ -9,10 +9,13 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Add a flag to prevent multiple simultaneous refreshes
+  const [refreshing, setRefreshing] = useState(false);
 
   // Function to refresh the token
   const refreshToken = async () => {
     try {
+      setRefreshing(true);
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No token found');
@@ -35,6 +38,8 @@ export const UserProvider = ({ children }) => {
       setUser(null);
       setRole(null);
       return false;
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -75,7 +80,11 @@ export const UserProvider = ({ children }) => {
         const originalRequest = error.config;
 
         // If the error is 401 and we haven't tried to refresh the token yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !refreshing // Prevent multiple simultaneous refreshes
+        ) {
           originalRequest._retry = true;
 
           // Try to refresh the token
@@ -96,7 +105,7 @@ export const UserProvider = ({ children }) => {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, []);
+  }, [refreshing]); // Only re-run if 'refreshing' changes
 
   // Initial fetch of user data
   useEffect(() => {

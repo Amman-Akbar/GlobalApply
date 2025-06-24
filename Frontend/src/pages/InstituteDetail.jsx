@@ -20,6 +20,7 @@ const InstituteDetail = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { user } = useUser();
   const [wishlistStatus, setWishlistStatus] = useState({});
+  const [appliedPrograms, setAppliedPrograms] = useState({});
 
   useEffect(() => {
     fetchInstituteData();
@@ -258,6 +259,37 @@ const InstituteDetail = () => {
       ...prev,
       departments: newDepartments
     }));
+  };
+
+  // Function to apply for a program
+  const handleApply = async (departmentIndex, programIndex) => {
+    if (!user) {
+      toast.info('Please login to apply for a program');
+      navigate('/login');
+      return;
+    }
+    if (user.role !== 'student') {
+      toast.error('Only students can apply for programs.');
+      return;
+    }
+    const program = institute.departments[departmentIndex].programs[programIndex];
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/applications', {
+        student: user.id,
+        institute: institute._id,
+        program: program.name,
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.data.success) {
+        toast.success('Application submitted successfully!');
+        setAppliedPrograms(prev => ({ ...prev, [`${departmentIndex}-${programIndex}`]: true }));
+      } else {
+        toast.error('Failed to submit application.');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to submit application.');
+    }
   };
 
   if (loading) {
@@ -511,10 +543,11 @@ const InstituteDetail = () => {
                                   </p>
                                   <div className="flex justify-between items-center">
                                     <button
-                                      className="bg-[#1d5ec7] text-white px-3 py-1 rounded-full text-sm hover:bg-[#306fd6] transition duration-300"
-                                      onClick={() => navigate('/apply')}
+                                      className={`bg-[#1d5ec7] text-white px-3 py-1 rounded-full text-sm hover:bg-[#306fd6] transition duration-300 ${appliedPrograms[key] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                      onClick={() => handleApply(departmentIndex, programIndex)}
+                                      disabled={appliedPrograms[key]}
                                     >
-                                      Apply Now
+                                      {appliedPrograms[key] ? 'Applied' : 'Apply Now'}
                                     </button>
                                     <button
                                       onClick={() => toggleHeart(departmentIndex, programIndex)}

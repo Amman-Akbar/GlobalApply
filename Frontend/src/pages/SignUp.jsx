@@ -22,26 +22,32 @@ const SignUp = () => {
   }, [user, navigate]);
 
   const validateForm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const usernameAlphaRegex = /[a-zA-Z]/;
     if (!username || !email || !password || !confirmPassword) {
       setError('All fields are required.');
       return false;
     }
-
-    if (password !== confirmPassword) {
-      setError("Passwords don't match.");
+    if (username.length < 3) {
+      setError('Username must be at least 3 characters long.');
       return false;
     }
-
+    if (!usernameAlphaRegex.test(username)) {
+      setError('Username must contain at least one alphabet character.');
+      return false;
+    }
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
+      return false;
+    }
     if (password.length < 6) {
       setError('Password must be at least 6 characters long.');
       return false;
     }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Invalid email address.');
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
       return false;
     }
-
     return true;
   };
 

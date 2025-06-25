@@ -1,32 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-// Sample data for virtual tours
-const sampleTours = [
-  {
-    id: 1,
-    title: 'Campus Tour',
-    description: 'Explore our campus with a detailed virtual tour showcasing classrooms, labs, and amenities.',
-    thumbnail: 'https://via.placeholder.com/300x200', // Replace with actual thumbnail URLs
-  },
-  {
-    id: 2,
-    title: 'Library Tour',
-    description: 'Take a look at our state-of-the-art library, equipped with modern facilities and vast resources.',
-    thumbnail: 'https://via.placeholder.com/300x200', // Replace with actual thumbnail URLs
-  },
-  {
-    id: 3,
-    title: 'Sports Facilities',
-    description: 'Discover our extensive sports facilities, including fields, courts, and gymnasiums.',
-    thumbnail: 'https://via.placeholder.com/300x200', // Replace with actual thumbnail URLs
-  },
-];
-
-const VirtualTours = () => {
-  const [tours, setTours] = useState(sampleTours);
+const VirtualTours = ({ instituteId }) => {
+  const [tours, setTours] = useState([]);
   const [editingTour, setEditingTour] = useState(null);
   const [updatedTitle, setUpdatedTitle] = useState('');
   const [updatedDescription, setUpdatedDescription] = useState('');
+  const [subscriptionPlan, setSubscriptionPlan] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+
+  // Fetch current subscription plan and status for the institute
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      if (!instituteId) return;
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`http://localhost:3000/api/v1/institute/${instituteId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const institute = response.data.data;
+        if (institute && institute.subscription) {
+          setSubscriptionStatus(institute.subscriptionStatus || null);
+          // Fetch all subscriptions to get planName
+          const subsRes = await axios.get('http://localhost:3000/api/v1/subscriptions', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const plan = subsRes.data.find(sub => sub._id === institute.subscription);
+          setSubscriptionPlan(plan ? plan.planName : null);
+        } else {
+          setSubscriptionPlan(null);
+          setSubscriptionStatus(institute?.subscriptionStatus || null);
+        }
+      } catch (err) {
+        setSubscriptionPlan(null);
+        setSubscriptionStatus(null);
+      }
+    };
+    fetchSubscription();
+  }, [instituteId]);
 
   // Function to delete a tour
   const handleDelete = (id) => {
@@ -72,6 +83,9 @@ const VirtualTours = () => {
     setUpdatedDescription('');
   };
 
+  // Blur if no plan, free plan, or pending status
+  const shouldRestrict = !subscriptionPlan || (subscriptionPlan && subscriptionPlan.toLowerCase() === 'free') || subscriptionStatus === 'pending';
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold text-gray-700">Virtual Tours</h2>
@@ -79,64 +93,71 @@ const VirtualTours = () => {
         Manage and explore virtual tours to showcase your institute's facilities and features.
       </p>
 
-      {/* Add New Tour Button */}
-      <button
-        onClick={handleAddTour}
-        className="bg-[#1D5EC7] text-white py-2 px-4 rounded-lg hover:bg-[#306fd6] transition duration-300"
-      >
-        Add New Tour
-      </button>
-
-      {/* Tours List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tours.map((tour) => (
-          <div
-            key={tour.id}
-            className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200"
-          >
-            {/* Thumbnail */}
-            <div className="relative">
-              <img
-                src={tour.thumbnail}
-                alt={tour.title}
-                className="w-full h-40 object-cover"
-              />
-            </div>
-
-            {/* Tour Details */}
-            <div className="p-4">
-              <h3 className="text-lg font-semibold text-gray-800">{tour.title}</h3>
-              <p className="text-sm text-gray-600 mt-2">{tour.description}</p>
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-between items-center px-4 pb-4">
-              <button
-                onClick={() => handleEditTour(tour)}
-                className="text-sm text-[#1D5EC7] hover:text-[#306fd6] transition"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(tour.id)}
-                className="text-sm text-red-600 hover:text-red-800 transition"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {tours.length === 0 && (
-        <div className="text-center text-gray-600">
-          <p>No virtual tours available. Click "Add New Tour" to get started!</p>
+      {shouldRestrict ? (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded text-center">
+          Upgrade your plan to get access to virtual tours.
         </div>
+      ) : (
+        <>
+          {/* Add New Tour Button */}
+          <button
+            onClick={handleAddTour}
+            className="bg-[#1D5EC7] text-white py-2 px-4 rounded-lg hover:bg-[#306fd6] transition duration-300"
+          >
+            Add New Tour
+          </button>
+
+          {/* Tours List */}
+          {tours.length === 0 ? (
+            <div className="text-center text-gray-600">
+              <p>No virtual tours available. Click "Add New Tour" to get started!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {tours.map((tour) => (
+                <div
+                  key={tour.id}
+                  className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200"
+                >
+                  {/* Thumbnail */}
+                  <div className="relative">
+                    <img
+                      src={tour.thumbnail}
+                      alt={tour.title}
+                      className="w-full h-40 object-cover"
+                    />
+                  </div>
+
+                  {/* Tour Details */}
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-800">{tour.title}</h3>
+                    <p className="text-sm text-gray-600 mt-2">{tour.description}</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-between items-center px-4 pb-4">
+                    <button
+                      onClick={() => handleEditTour(tour)}
+                      className="text-sm text-[#1D5EC7] hover:text-[#306fd6] transition"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(tour.id)}
+                      className="text-sm text-red-600 hover:text-red-800 transition"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Tour Modal */}
-      {editingTour && (
+      {editingTour && !shouldRestrict && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h3 className="text-xl font-semibold text-gray-700 mb-4">Edit Tour</h3>

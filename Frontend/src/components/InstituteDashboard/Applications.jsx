@@ -144,12 +144,12 @@ const Applications = ({ instituteId: propInstituteId }) => {
             </tr>
           </thead>
           <tbody>
-            {applications.length === 0 ? (
+            {applications.filter(app => app.status === 'pending').length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center text-gray-500 py-6">No applications found.</td>
+                <td colSpan="5" className="text-center text-gray-500 py-6">No pending applications found.</td>
               </tr>
             ) : (
-              applications.map((app) => (
+              applications.filter(app => app.status === 'pending').map((app) => (
                 <tr key={app._id} className="border-t border-gray-200 hover:bg-gray-50 transition duration-300">
                   <td className="px-4 py-2 text-gray-800">{app.student?.username || 'Student'}</td>
                   <td className="px-4 py-2 text-gray-600">{app.program}</td>

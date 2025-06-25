@@ -230,7 +230,7 @@ const ProfileCard = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-medium text-gray-600 min-w-[120px]">Nationality:</span>
-                <span className="text-gray-800">{studentData.nationality}</span>
+                <span className="text-gray-800">{studentData.nationality || 'Not specified'}</span>
               </div>
             </div>
           </div>
@@ -434,13 +434,35 @@ const ProfileCard = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nationality</label>
-                <input
-                  type="text"
+                <select
                   name="nationality"
                   value={formData.nationality}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Select Nationality</option>
+                  <option value="Pakistani" selected>Pakistani</option>
+                  <option value="American">American</option>
+                  <option value="British">British</option>
+                  <option value="Indian">Indian</option>
+                  <option value="Chinese">Chinese</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="German">German</option>
+                  <option value="French">French</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="Russian">Russian</option>
+                  <option value="Brazilian">Brazilian</option>
+                  <option value="Mexican">Mexican</option>
+                  <option value="Canadian">Canadian</option>
+                  <option value="Australian">Australian</option>
+                  <option value="South African">South African</option>
+                  <option value="Turkish">Turkish</option>
+                  <option value="Egyptian">Egyptian</option>
+                  <option value="Indonesian">Indonesian</option>
+                  <option value="Iranian">Iranian</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
             </div>
           </div>

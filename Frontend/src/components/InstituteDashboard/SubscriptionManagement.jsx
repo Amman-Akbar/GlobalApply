@@ -10,6 +10,7 @@ const SubscriptionManagement = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isManaging, setIsManaging] = useState(false);
+  const [instituteId, setInstituteId] = useState(null);
 
   // Fetch available subscriptions and current subscription
   useEffect(() => {
@@ -39,6 +40,7 @@ const SubscriptionManagement = () => {
 
         if (instituteResponse.data.success) {
           const institute = instituteResponse.data.data;
+          setInstituteId(institute._id);
           if (institute.subscription) {
             // Find the full subscription details from available subscriptions
             const fullSubscriptionDetails = subscriptionsResponse.data.find(
@@ -53,6 +55,9 @@ const SubscriptionManagement = () => {
               setCurrentSubscription(institute.subscription);
               setSubscriptionStatus(institute.subscriptionStatus || 'pending');
             }
+          } else {
+            setCurrentSubscription(null);
+            setSubscriptionStatus(null);
           }
         }
       } catch (err) {
@@ -68,7 +73,7 @@ const SubscriptionManagement = () => {
     }
   }, [user?.id]);
 
-  // Handle subscription purchase
+  // Handle subscription purchase/change
   const handlePurchaseSubscription = async (subscriptionId) => {
     try {
       setLoading(true);
@@ -78,12 +83,11 @@ const SubscriptionManagement = () => {
       if (!token) {
         throw new Error('No authentication token found');
       }
-
       const response = await axios.post(
         'http://localhost:3000/api/v1/subscriptions/assign',
         {
           subscriptionId,
-          instituteId: user.id
+          instituteId: instituteId
         },
         {
           headers: {
@@ -91,8 +95,8 @@ const SubscriptionManagement = () => {
           }
         }
       );
-
-      if (response.data.success) {
+      console.log('Subscription assign response:', response.data);
+      if ((response.data && response.data.success) || response.status === 200) {
         // Update current subscription
         const updatedSubscription = availableSubscriptions.find(
           sub => sub._id === subscriptionId
@@ -206,13 +210,19 @@ const SubscriptionManagement = () => {
                 ))}
               </ul>
             </div>
-            {subscriptionStatus === 'rejected' && (
+            {/* Only allow change if not pending */}
+            {(subscriptionStatus === 'active' || subscriptionStatus === 'rejected') && !isManaging && (
               <button
                 onClick={toggleManageSubscription}
                 className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
               >
-                Request New Plan
+                Change Plan
               </button>
+            )}
+            {subscriptionStatus === 'pending' && (
+              <div className="mt-6 text-yellow-700 font-medium">
+                You have a pending subscription change. Please wait for admin approval.
+              </div>
             )}
           </div>
         </div>
@@ -228,7 +238,8 @@ const SubscriptionManagement = () => {
         </div>
       )}
 
-      {isManaging && (
+      {/* Plan selection UI, only if not pending and isManaging is true */}
+      {isManaging && subscriptionStatus !== 'pending' && (
         <div className="mt-8">
           <h4 className="text-lg font-medium text-gray-700">Available Plans</h4>
           <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
